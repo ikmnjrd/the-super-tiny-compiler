@@ -320,32 +320,29 @@
  * ほとんどの場合、コード生成は、私たちのASTを受け取り、
  * コードを文字列化して戻すことを意味するだけです。
  *
- * Code generators work several different ways, some compilers will reuse the
- * tokens from earlier, others will have created a separate representation of
- * the code so that they can print nodes linearly, but from what I can tell most
- * will use the same AST we just created, which is what we’re going to focus on.
+ * コード生成器によっては、それぞれ異なる方法で動作します。
+ * あるコンパイラでは以前のトークンを再利用し、別のコンパイラはノードを線形に表示できるように
+ * コードの表現を作成しますが、私の知る限り、ほとんどは先ほど作成したASTを使用します。
  *
- * Effectively our code generator will know how to “print” all of the different
- * node types of the AST, and it will recursively call itself to print nested
- * nodes until everything is printed into one long string of code.
+ * コード生成器はASTの異なるノードタイプを効率的にすべてプリントする方法を知っており、
+ * すべてが1つの長いコード文字列にプリントされるまで、ネストしたノードをプリントするために
+ * 自身を再帰的に呼び出します。
  */
 
 /**
- * And that's it! That's all the different pieces of a compiler.
+ * これでコンパイラを分解してのパーツ説明は終わりです！
  *
- * Now that isn’t to say every compiler looks exactly like I described here.
- * Compilers serve many different purposes, and they might need more steps than
- * I have detailed.
+ * しかし、すべてのコンパイラーがここで説明したとおりの姿をしているとは言い切れません。
+ * コンパイラは様々な用途に使われますし、私が説明した以上の手順が必要かもしれません。
  *
- * But now you should have a general high-level idea of what most compilers look
- * like.
+ * しかし、これでほとんどのコンパイラがどのようなものであるか、
+ * 全般的なハイレベルの考えを持つことができたはずです。
  *
- * Now that I’ve explained all of this, you’re all good to go write your own
- * compilers right?
+ * さて、ここまで説明したところで、皆さんは自分でコンパイラを書けるようになりましたね？
  *
- * Just kidding, that's what I'm here to help with :P
+ * というのは冗談で、そのために私はここにいるのです :P
  *
- * So let's begin...
+ * それでは初めて行きましょう...
  */
 
 /**
@@ -356,59 +353,54 @@
  */
 
 /**
- * We're gonna start off with our first phase of parsing, lexical analysis, with
- * the tokenizer.
+ * まず、構文解析の最初の段階である字句解析から始めましょう。
  *
- * We're just going to take our string of code and break it down into an array
- * of tokens.
+ * 私たちはまず、コードの文字列をトークンの配列に分解していきます。
  *
  *   (add 2 (subtract 4 2))   =>   [{ type: 'paren', value: '(' }, ...]
  */
 
-// We start by accepting an input string of code, and we're gonna set up two
-// things...
+// まず、コードの入力文字列を受け取って、次の2つに分けていきます。
 function tokenizer(input) {
 
-  // A `current` variable for tracking our position in the code like a cursor.
+  // コード内のカーソルのような役目を担う`current`変数
   let current = 0;
 
-  // And a `tokens` array for pushing our tokens to.
+  // そしてトークンをpushしていくための配列`tokens`
   let tokens = [];
 
-  // We start by creating a `while` loop where we are setting up our `current`
-  // variable to be incremented as much as we want `inside` the loop.
+  // まず、`while`ループを作成し、`current`を設定することから始めます。
+  // `current`変数はコードの内部で必要なだけインクリメントして使います。
   //
-  // We do this because we may want to increment `current` many times within a
-  // single loop because our tokens can be any length.
+  // これは、トークンの長さが任意であるため、
+  // 1つのループ内で `current` を何度もインクリメントしたいからです。
   while (current < input.length) {
 
-    // We're also going to store the `current` character in the `input`.
+    // そして、`input` に `current`の文字を格納することにします。
     let char = input[current];
 
-    // The first thing we want to check for is an open parenthesis. This will
-    // later be used for `CallExpression` but for now we only care about the
-    // character.
+    // まず最初に確認したいのは、開括弧の有無です。
+    // これは後で `CallExpression` で使うことになりますが、今は文字に集中していきます。
     //
-    // We check to see if we have an open parenthesis:
+    // 開括弧があるかどうかを確認します。:
     if (char === '(') {
 
-      // If we do, we push a new token with the type `paren` and set the value
-      // to an open parenthesis.
+      // もしそうなら、 `paren` 型の新しいトークンをプッシュし、その値を開き括弧に設定します。
       tokens.push({
         type: 'paren',
         value: '(',
       });
 
-      // Then we increment `current`
+      // `current`をインクリメントします。
       current++;
 
-      // And we `continue` onto the next cycle of the loop.
+      // そして`continue`で次のループを実行します。
       continue;
     }
 
-    // Next we're going to check for a closing parenthesis. We do the same exact
-    // thing as before: Check for a closing parenthesis, add a new token,
-    // increment `current`, and `continue`.
+    // 次に閉括弧がないかチェックします。 前回と全く同じことです。
+    // つまり閉じ括弧をチェックし、新しいトークンを追加し、
+    // `current` をインクリメントし、 `continue` します。
     if (char === ')') {
       tokens.push({
         type: 'paren',
@@ -418,83 +410,78 @@ function tokenizer(input) {
       continue;
     }
 
-    // Moving on, we're now going to check for whitespace. This is interesting
-    // because we care that whitespace exists to separate characters, but it
-    // isn't actually important for us to store as a token. We would only throw
-    // it out later.
+    // 続けて、今度は空白をチェックします。これは興味深いことに、
+    // 空白は文字を区切るために存在しますが、
+    // 実はトークンとして保存するのには重要ではありません。
+    // 後で捨てればいいだけだからです。
     //
-    // So here we're just going to test for existence and if it does exist we're
-    // going to just `continue` on.
+    // そこで、ここでは存在するかどうかをテストし、存在する場合はそのまま `continue` を実行します。
     let WHITESPACE = /\s/;
     if (WHITESPACE.test(char)) {
       current++;
       continue;
     }
 
-    // The next type of token is a number. This is different than what we have
-    // seen before because a number could be any number of characters and we
-    // want to capture the entire sequence of characters as one token.
+    // 次のトークンの種類は、数字です。これは今までと違って、
+    // 数字は任意の数の文字であり、一連の文字全体を1つのトークンとして捕らえたいからです.
     //
     //   (add 123 456)
     //        ^^^ ^^^
     //        Only two separate tokens
     //
-    // So we start this off when we encounter the first number in a sequence.
+    // そこで、数列の最初の数字に遭遇したときからシーケンスをスタートさせます。
     let NUMBERS = /[0-9]/;
     if (NUMBERS.test(char)) {
 
-      // We're going to create a `value` string that we are going to push
-      // characters to.
+      // `value`を文字としてpushします。
       let value = '';
 
-      // Then we're going to loop through each character in the sequence until
-      // we encounter a character that is not a number, pushing each character
-      // that is a number to our `value` and incrementing `current` as we go.
+      // 数字でない文字に遭遇するまで、シーケンスの各文字をループして、
+      // 数字である各文字を `value` にpushし、続くだけ `current` をインクリメントさせます。
       while (NUMBERS.test(char)) {
         value += char;
         char = input[++current];
       }
 
-      // After that we push our `number` token to the `tokens` array.
+      // その後、`number`トークンを`tokens`配列にpushします.
       tokens.push({ type: 'number', value });
 
-      // And we continue on.
+      // まだ続きます。
       continue;
     }
 
-    // We'll also add support for strings in our language which will be any
-    // text surrounded by double quotes (").
+    // また、この言語では文字列もサポートしており、
+    // 二重引用符（"）で囲まれたテキストを使用することができます。
     //
     //   (concat "foo" "bar")
     //            ^^^   ^^^ string tokens
     //
-    // We'll start by checking for the opening quote:
+    // まずは二重引用符の開始箇所を確認することから始めます:
     if (char === '"') {
-      // Keep a `value` variable for building up our string token.
+      // 文字列トークンを構築するために `value` 変数を保持します。
       let value = '';
 
-      // We'll skip the opening double quote in our token.
+      // トークンの冒頭の二重引用符は省略します。
       char = input[++current];
 
-      // Then we'll iterate through each character until we reach another
-      // double quote.
+      // そしてもう一つの二重引用符に到達するまで繰り返し処理します。
       while (char !== '"') {
         value += char;
         char = input[++current];
       }
 
-      // Skip the closing double quote.
+      // 閉じる側の二重引用符もスキップします.
       char = input[++current];
 
-      // And add our `string` token to the `tokens` array.
+      // `string`トークンを`tokens`配列にpushします.
       tokens.push({ type: 'string', value });
 
       continue;
     }
 
-    // The last type of token will be a `name` token. This is a sequence of
-    // letters instead of numbers, that are the names of functions in our lisp
-    // syntax.
+    // 最後のタイプのトークンは `name` トークンになります。
+    // これは数字の代わりにアルファベットを並べたもので、
+    // lispの構文でいうところの関数の名前にあたります。
     //
     //   (add 2 4)
     //    ^^^
@@ -504,25 +491,23 @@ function tokenizer(input) {
     if (LETTERS.test(char)) {
       let value = '';
 
-      // Again we're just going to loop through all the letters pushing them to
-      // a value.
+      // ここでもまた、すべての文字をループさせて、値にプッシュしていくだけです。
       while (LETTERS.test(char)) {
         value += char;
         char = input[++current];
       }
 
-      // And pushing that value as a token with the type `name` and continuing.
+      // そして、その値を `name` 型のトークンとしてプッシュし、続行します。
       tokens.push({ type: 'name', value });
 
       continue;
     }
 
-    // Finally if we have not matched a character by now, we're going to throw
-    // an error and completely exit.
+    // 最後に、もしこれまでで文字がマッチしなかった場合は、エラーを投げて完全に終了します。
     throw new TypeError('I dont know what this character is: ' + char);
   }
 
-  // Then at the end of our `tokenizer` we simply return the tokens array.
+  // そして `tokenizer` の最後には、単純にトークンの配列を返します。
   return tokens;
 }
 
