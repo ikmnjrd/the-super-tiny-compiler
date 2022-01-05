@@ -519,44 +519,39 @@ function tokenizer(input) {
  */
 
 /**
- * For our parser we're going to take our array of tokens and turn it into an
- * AST.
+ * パーサーでは、トークンの配列を受け取り、ASTに変換します.
  *
  *   [{ type: 'paren', value: '(' }, ...]   =>   { type: 'Program', body: [...] }
  */
 
-// Okay, so we define a `parser` function that accepts our array of `tokens`.
+// では、トークンの配列を受け取る `parser` 関数を定義します。
 function parser(tokens) {
 
-  // Again we keep a `current` variable that we will use as a cursor.
+  // ここでもカーソルとして使用する `current` 変数を保持しています。
   let current = 0;
 
-  // But this time we're going to use recursion instead of a `while` loop. So we
-  // define a `walk` function.
+  // しかし今回は、`while`ループの代わりに再帰を使うことにします。そこで、`walk`関数を定義します.
   function walk() {
 
-    // Inside the walk function we start by grabbing the `current` token.
+    // walk 関数の内部では、まず `current` トークンを取得することから始めます。
     let token = tokens[current];
 
-    // We're going to split each type of token off into a different code path,
-    // starting off with `number` tokens.
+    // トークンの種類ごとに別のコードパスに分割して、まずは `number` トークンから始めましょう。
     //
-    // We test to see if we have a `number` token.
+    // `number`のトークンがあるかどうかをテストします。
     if (token.type === 'number') {
 
-      // If we have one, we'll increment `current`.
+      // もしそれを持っていたら, `current`をインクリメントします.
       current++;
 
-      // And we'll return a new AST node called `NumberLiteral` and setting its
-      // value to the value of our token.
+      // そして、`NumberLiteral`という新しいASTノードを返し、その値をトークンの値に設定します。
       return {
         type: 'NumberLiteral',
         value: token.value,
       };
     }
 
-    // If we have a string we will do the same as number and create a
-    // `StringLiteral` node.
+    // 文字列の場合は、数値と同じように `StringLiteral` ノードを作成します。
     if (token.type === 'string') {
       current++;
 
@@ -566,44 +561,41 @@ function parser(tokens) {
       };
     }
 
-    // Next we're going to look for CallExpressions. We start this off when we
-    // encounter an open parenthesis.
+    // 次に、CallExpressionsを探します。まずは開括弧に出会うところからです。
     if (
       token.type === 'paren' &&
       token.value === '('
     ) {
 
-      // We'll increment `current` to skip the parenthesis since we don't care
-      // about it in our AST.
+      // ASTでは括弧を気にしないので、括弧をスキップするために
+      // `current` をインクリメントすることにします。
       token = tokens[++current];
 
-      // We create a base node with the type `CallExpression`, and we're going
-      // to set the name as the current token's value since the next token after
-      // the open parenthesis is the name of the function.
+      // `CallExpression`タイプの基準ノードを作成し、開カッコの次のトークンが関数名なので、
+      // そのnameを現在のトークンの値として設定することにします。
       let node = {
         type: 'CallExpression',
         name: token.value,
         params: [],
       };
 
-      // We increment `current` *again* to skip the name token.
+      // nameトークンをスキップするために、`current` を再度インクリメントします。
       token = tokens[++current];
 
-      // And now we want to loop through each token that will be the `params` of
-      // our `CallExpression` until we encounter a closing parenthesis.
+      // そして今度は `CallExpression` の `params` となる各トークンを
+      // 、閉括弧に出会うまでループさせたいと思います。
       //
-      // Now this is where recursion comes in. Instead of trying to parse a
-      // potentially infinitely nested set of nodes we're going to rely on
-      // recursion to resolve things.
+      // ここで再帰が登場します。
+      // 無限にネストされたノードのセットをパースする代わりに、
+      // 再帰に頼って物事を解決しようとします。
       //
-      // To explain this, let's take our Lisp code. You can see that the
-      // parameters of the `add` are a number and a nested `CallExpression` that
-      // includes its own numbers.
+      // これを説明するために、Lispのコードを見てみましょう。
+      // `add` のパラメータは数値と、その数値を含むネストした `CallExpression`
+      // であることがわかると思います。
       //
       //   (add 2 (subtract 4 2))
       //
-      // You'll also notice that in our tokens array we have multiple closing
-      // parenthesis.
+      // また、トークン配列の中で、複数の閉括弧があることに気づかれたと思います。
       //
       //   [
       //     { type: 'paren',  value: '('        },
@@ -613,51 +605,45 @@ function parser(tokens) {
       //     { type: 'name',   value: 'subtract' },
       //     { type: 'number', value: '4'        },
       //     { type: 'number', value: '2'        },
-      //     { type: 'paren',  value: ')'        }, <<< Closing parenthesis
-      //     { type: 'paren',  value: ')'        }, <<< Closing parenthesis
+      //     { type: 'paren',  value: ')'        }, <<< 閉括弧
+      //     { type: 'paren',  value: ')'        }, <<< 閉括弧
       //   ]
       //
-      // We're going to rely on the nested `walk` function to increment our
-      // `current` variable past any nested `CallExpression`.
+      // ネストされた `walk` 関数を使用して、ネストされた `CallExpression` を
+      // リレーし `current` 変数をインクリメントすることができます。
 
-      // So we create a `while` loop that will continue until it encounters a
-      // token with a `type` of `'paren'` and a `value` of a closing
-      // parenthesis.
+      // そこで、 `while` ループを作成して、 `type` が `'paren'` で
+      // `value` が閉じ括弧であるトークンに出会うまでループさせます。
       while (
         (token.type !== 'paren') ||
         (token.type === 'paren' && token.value !== ')')
       ) {
-        // we'll call the `walk` function which will return a `node` and we'll
-        // push it into our `node.params`.
+        // `walk` 関数を呼び出して `node` を返し、それを `node.params` にプッシュします。
         node.params.push(walk());
         token = tokens[current];
       }
 
-      // Finally we will increment `current` one last time to skip the closing
-      // parenthesis.
+      // 最後にもう一度 `current` をインクリメントして、閉じ括弧をスキップします。
       current++;
 
-      // And return the node.
+      // そしてnodeを返します。
       return node;
     }
 
-    // Again, if we haven't recognized the token type by now we're going to
-    // throw an error.
+    // 再び、もし今までにトークン・タイプを読み込めなかった場合は、エラーを投げることになります。
     throw new TypeError(token.type);
   }
 
-  // Now, we're going to create our AST which will have a root which is a
-  // `Program` node.
+  // さて、これからASTを作成します。ASTは `Program` ノードをルートとします。
   let ast = {
     type: 'Program',
     body: [],
   };
 
-  // And we're going to kickstart our `walk` function, pushing nodes to our
-  // `ast.body` array.
+  // `walk` 関数をキックスタートさせ、ノードを `ast.body` 配列にpushしていきます。
   //
-  // The reason we are doing this inside a loop is because our program can have
-  // `CallExpression` after one another instead of being nested.
+  // ループの中でこれを行う理由は、このプログラムではネストさせる代わりに、
+  // `CallExpression`を持つことができるからです。
   //
   //   (add 2 2)
   //   (subtract 4 2)
@@ -666,7 +652,7 @@ function parser(tokens) {
     ast.body.push(walk());
   }
 
-  // At the end of our parser we'll return the AST.
+  // パーサーの最後には、ASTを返します。
   return ast;
 }
 
@@ -678,9 +664,9 @@ function parser(tokens) {
  */
 
 /**
- * So now we have our AST, and we want to be able to visit different nodes with
- * a visitor. We need to be able to call the methods on the visitor whenever we
- * encounter a node with a matching type.
+ * さて、これでASTができあがりました。
+ * そして、ビジターを使ってさまざまなノードを訪問できるようにしたいと思います。
+ * 型が一致するノードに遭遇したときに、ビジターのメソッドを呼び出せるようにする必要があります。
  *
  *   traverse(ast, {
  *     Program: {
@@ -712,71 +698,67 @@ function parser(tokens) {
  *   });
  */
 
-// So we define a traverser function which accepts an AST and a
-// visitor. Inside we're going to define two functions...
+// そこで、ASTとvisitorを受け取るトラバーサー関数を定義します。
+// 内部では2つの関数を定義しています...
 function traverser(ast, visitor) {
 
-  // A `traverseArray` function that will allow us to iterate over an array and
-  // call the next function that we will define: `traverseNode`.
+  // `traverseArray`関数は、配列に対して反復処理を行い、
+  // 次に定義する関数 `traverseNode` を呼び出すことができます。
   function traverseArray(array, parent) {
     array.forEach(child => {
       traverseNode(child, parent);
     });
   }
 
-  // `traverseNode` will accept a `node` and its `parent` node. So that it can
-  // pass both to our visitor methods.
+  // `traverseNode`は、`node` とその `parent` ノードを受け取ります。
+  // そのため、ビジターのメソッドに両方を渡すことができます。
   function traverseNode(node, parent) {
 
-    // We start by testing for the existence of a method on the visitor with a
-    // matching `type`.
+    // `type`にマッチするメソッドがビジターに存在するかどうかをテストします
     let methods = visitor[node.type];
 
-    // If there is an `enter` method for this node type we'll call it with the
-    // `node` and its `parent`.
+    // もし、このノードタイプに `enter` メソッドがあれば、 `node` と `parent` を使って呼び出します。
     if (methods && methods.enter) {
       methods.enter(node, parent);
     }
 
-    // Next we are going to split things up by the current node type.
+    // 次に、現在のノードの種類によって物事を分割していきます。
     switch (node.type) {
 
-      // We'll start with our top level `Program`. Since Program nodes have a
-      // property named body that has an array of nodes, we will call
-      // `traverseArray` to traverse down into them.
+      // まずはトップレベルの `Program` から始めましょう。
+      // Program ノードには body というプロパティがあり、
+      // そこにはノードの配列が格納されているので、
+      // `traverseArray` を呼び出してノードの中をトラバースしていきます。
       //
-      // (Remember that `traverseArray` will in turn call `traverseNode` so  we
-      // are causing the tree to be traversed recursively)
+      // (`traverseArray` は順番に `traverseNode` を呼び出すので、
+      // ツリーを再帰的にトラバースしていることに注意してください)
       case 'Program':
         traverseArray(node.body, node);
         break;
 
-      // Next we do the same with `CallExpression` and traverse their `params`.
+      // 次に `CallExpression` と同じようにして、それらの `params` をトラバースします。
       case 'CallExpression':
         traverseArray(node.params, node);
         break;
 
-      // In the cases of `NumberLiteral` and `StringLiteral` we don't have any
-      // child nodes to visit, so we'll just break.
+      // NumberLiteral` と `StringLiteral` の場合は、訪問する子ノードがないので、そのままブレイクします。
       case 'NumberLiteral':
       case 'StringLiteral':
         break;
 
-      // And again, if we haven't recognized the node type then we'll throw an
-      // error.
+      // そして再び、ノードの種類を認識していない場合は、エラーを投げることになります。
       default:
         throw new TypeError(node.type);
     }
 
-    // If there is an `exit` method for this node type we'll call it with the
-    // `node` and its `parent`.
+    // もし、このノードタイプに `exit` メソッドがあれば、 `node` と `parent` を使ってそれを呼び出すことになります。
     if (methods && methods.exit) {
       methods.exit(node, parent);
     }
   }
 
-  // Finally we kickstart the traverser by calling `traverseNode` with our ast
-  // with no `parent` because the top level of the AST doesn't have a parent.
+  // 最後に、ASTのトップレベルには親がいないので、
+  // `parent` のないastで `traverseNode` を呼び出してトラバーサーをキックスタートさせます。
   traverseNode(ast, null);
 }
 
@@ -788,9 +770,8 @@ function traverser(ast, visitor) {
  */
 
 /**
- * Next up, the transformer. Our transformer is going to take the AST that we
- * have built and pass it to our traverser function with a visitor and will
- * create a new ast.
+ * 次は、トランスフォーマーです。
+ * トランスフォーマーは構築したASTをトラバーサー関数に渡してビジターと一緒に新しいastを作成します。
  *
  * ----------------------------------------------------------------------------
  *   Original AST                     |   Transformed AST
@@ -828,34 +809,32 @@ function traverser(ast, visitor) {
  * ----------------------------------------------------------------------------
  */
 
-// So we have our transformer function which will accept the lisp ast.
+// そこで、lispのastを受け入れる変換関数を用意しました。
 function transformer(ast) {
 
-  // We'll create a `newAst` which like our previous AST will have a program
-  // node.
+  // 前のASTと同じように、プログラムノードを持つ `newAst` を作成します。
   let newAst = {
     type: 'Program',
     body: [],
   };
 
-  // Next I'm going to cheat a little and create a bit of a hack. We're going to
-  // use a property named `context` on our parent nodes that we're going to push
-  // nodes to their parent's `context`. Normally you would have a better
-  // abstraction than this, but for our purposes this keeps things simple.
+  // 次に少しズルをして、ちょっとしたハックを作ってみようと思います。
+  // 親ノードの `context` というプロパティを使って、ノードをその親の `context` にプッシュすることにします。
+  // 通常であれば、これよりももっと良い抽象化ができるはずですが、
+  // 我々の目的ではこれで物事をシンプルに保つことができます。
   //
-  // Just take note that the context is a reference *from* the old ast *to* the
-  // new ast.
+  // ただ、コンテキストは、古いastから新しいastへの参照であることに注意してください。
   ast._context = newAst.body;
 
-  // We'll start by calling the traverser function with our ast and a visitor.
+  // まず、トラバーサー関数をastとビジターで呼び出すことから始めます。
   traverser(ast, {
 
-    // The first visitor method accepts any `NumberLiteral`
+    // 最初のビジターのメソッドは、任意の `NumberLiteral` を受け入れる。
     NumberLiteral: {
-      // We'll visit them on enter.
+      // これらに、訪問します。
       enter(node, parent) {
-        // We'll create a new node also named `NumberLiteral` that we will push to
-        // the parent context.
+        // 同じく `NumberLiteral` という名前の新しいノードを作成して、
+        // 親コンテキストにプッシュすることにします。
         parent._context.push({
           type: 'NumberLiteral',
           value: node.value,
@@ -863,7 +842,7 @@ function transformer(ast) {
       },
     },
 
-    // Next we have `StringLiteral`
+    // 次は `StringLiteral` です。
     StringLiteral: {
       enter(node, parent) {
         parent._context.push({
@@ -873,12 +852,11 @@ function transformer(ast) {
       },
     },
 
-    // Next up, `CallExpression`.
+    // そして `CallExpression`です。
     CallExpression: {
       enter(node, parent) {
 
-        // We start creating a new node `CallExpression` with a nested
-        // `Identifier`.
+        // 新しいノード `CallExpression` を作成し、ネストした `Identifier` を作成します。
         let expression = {
           type: 'CallExpression',
           callee: {
@@ -888,33 +866,28 @@ function transformer(ast) {
           arguments: [],
         };
 
-        // Next we're going to define a new context on the original
-        // `CallExpression` node that will reference the `expression`'s arguments
-        // so that we can push arguments.
+        // 次に、元の `CallExpression` ノードに新しいコンテキストを定義して、
+        //  `expression` の引数を参照し、引数をプッシュできるようにします。
         node._context = expression.arguments;
 
-        // Then we're going to check if the parent node is a `CallExpression`.
-        // If it is not...
+        // 次に、親ノードが `CallExpression` であるかどうかを確認します。もしそうでなければ..
         if (parent.type !== 'CallExpression') {
 
-          // We're going to wrap our `CallExpression` node with an
-          // `ExpressionStatement`. We do this because the top level
-          // `CallExpression` in JavaScript are actually statements.
+          // `CallExpression` ノードを `ExpressionStatement` でラップします。
+          // これはJavaScriptのトップレベルの `CallExpression` が実際にはステートメントであるからです。
           expression = {
             type: 'ExpressionStatement',
             expression: expression,
           };
         }
 
-        // Last, we push our (possibly wrapped) `CallExpression` to the `parent`'s
-        // `context`.
+        // 最後に、（おそらくラップされた） `CallExpression` を `parent` の `context` にプッシュします。
         parent._context.push(expression);
       },
     }
   });
 
-  // At the end of our transformer function we'll return the new ast that we
-  // just created.
+  // トランスフォーマー関数の最後には、先ほど作成した新しいastを返します。
   return newAst;
 }
 
@@ -926,35 +899,33 @@ function transformer(ast) {
  */
 
 /**
- * Now let's move onto our last phase: The Code Generator.
+ * では、最後のフェーズに移りましょう。コード生成です。
  *
- * Our code generator is going to recursively call itself to print each node in
- * the tree into one giant string.
+ * このコードジェネレータは、ツリーの各ノードを1つの巨大な文字列にプリントするために、自分自身を再帰的に呼び出そうとしているのです。
  */
 
 function codeGenerator(node) {
 
-  // We'll break things down by the `type` of the `node`.
+  // ここでは、`node`の`type`で分けて説明します。
   switch (node.type) {
 
-    // If we have a `Program` node. We will map through each node in the `body`
-    // and run them through the code generator and join them with a newline.
+    // `Program`ノードがあるとします。
+    // `body`の各ノードをマップしてコードジェネレータを通し、改行で結合します。
     case 'Program':
       return node.body.map(codeGenerator)
         .join('\n');
 
-    // For `ExpressionStatement` we'll call the code generator on the nested
-    // expression and we'll add a semicolon...
+    // ExpressionStatement` では、
+    // ネストされた式に対してコードジェネレータを呼び出し、セミコロンを追加します...
     case 'ExpressionStatement':
       return (
         codeGenerator(node.expression) +
-        ';' // << (...because we like to code the *correct* way)
+        ';' // << (...なぜなら、コードの正しさが好きだから)
       );
 
-    // For `CallExpression` we will print the `callee`, add an open
-    // parenthesis, we'll map through each node in the `arguments` array and run
-    // them through the code generator, joining them with a comma, and then
-    // we'll add a closing parenthesis.
+    //  CallExpression` では `callee` を表示して、開き括弧を追加し、
+    // `arguments` 配列の各ノードをマップしてコードジェネレーターに通し、
+    // カンマで結合し、閉括弧を追加します。
     case 'CallExpression':
       return (
         codeGenerator(node.callee) +
@@ -964,19 +935,19 @@ function codeGenerator(node) {
         ')'
       );
 
-    // For `Identifier` we'll just return the `node`'s name.
+    // `Identifier` については、単に `node` の名前を返すことにします。
     case 'Identifier':
       return node.name;
 
-    // For `NumberLiteral` we'll just return the `node`'s value.
+    // `NumberLiteral` については、単に `node` の値を返すことにします。
     case 'NumberLiteral':
       return node.value;
 
-    // For `StringLiteral` we'll add quotations around the `node`'s value.
+    // `StringLiteral` については、 `node` の値をクォーテーションで囲むことにします。
     case 'StringLiteral':
       return '"' + node.value + '"';
 
-    // And if we haven't recognized the node, we'll throw an error.
+    // そしてノードを認識していない場合は、エラーを投げます。
     default:
       throw new TypeError(node.type);
   }
@@ -990,8 +961,7 @@ function codeGenerator(node) {
  */
 
 /**
- * FINALLY! We'll create our `compiler` function. Here we will link together
- * every part of the pipeline.
+ * ついにコンパイラ関数を作成します。ここでは、パイプラインのすべての部分をリンクします。
  *
  *   1. input  => tokenizer   => tokens
  *   2. tokens => parser      => ast
@@ -1005,7 +975,7 @@ function compiler(input) {
   let newAst = transformer(ast);
   let output = codeGenerator(newAst);
 
-  // and simply return the output!
+  // 出力である返り値はシンプル!
   return output;
 }
 
@@ -1016,7 +986,7 @@ function compiler(input) {
  * ============================================================================
  */
 
-// Now I'm just exporting everything...
+// そして、他のモジュールのためエクスポート！
 module.exports = {
   tokenizer,
   parser,
