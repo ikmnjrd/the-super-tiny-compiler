@@ -76,16 +76,16 @@
  */
 
 /**
- * Today we're going to write a compiler together. But not just any compiler... A
- * super duper teeny tiny compiler! A compiler that is so small that if you
- * remove all the comments this file would only be ~200 lines of actual code.
+ * 本日、私たちはコンパイラを書いていこうと思う. しかしこれは広く使われているコンパイラにはならない...
+ * というのも、これはすっっっごく小さなコンパイラだからだ。 このコンパイラは実際のところ、
+ * 全てのコメントを除けば、このコンパイラのコードは200行以下になる。
  *
  * We're going to compile some lisp-like function calls into some C-like
  * function calls.
  *
- * If you are not familiar with one or the other. I'll just give you a quick intro.
+ * 簡単な例を提示するので、あなたはLispやCに詳しい必要はない。
  *
- * If we had two functions `add` and `subtract` they would be written like this:
+ * `add`関数と`subtract`関数は以下のように書く。
  *
  *                  LISP                      C
  *
@@ -93,55 +93,47 @@
  *   4 - 2          (subtract 4 2)            subtract(4, 2)
  *   2 + (4 - 2)    (add 2 (subtract 4 2))    add(2, subtract(4, 2))
  *
- * Easy peezy right?
+ * 簡単だよね?
  *
- * Well good, because this is exactly what we are going to compile. While this
- * is neither a complete LISP or C syntax, it will be enough of the syntax to
- * demonstrate many of the major pieces of a modern compiler.
+ * なら話は簡単で、まさにこれがコンパイルするつもりのものです.
+ * これはLISPやC言語の完璧な構文ではないが、多くのモダンなコンパイラの主要部分を説明するのに
+ * 十分な構文となっていることでしょう。
  */
 
 /**
- * Most compilers break down into three primary stages: Parsing, Transformation,
- * and Code Generation
+ * ほとんどのコンパイラは3つの主要な段階(stage)を踏みます: パース, 変換, コード生成
  *
- * 1. *Parsing* is taking raw code and turning it into a more abstract
- *    representation of the code.
+ * 1. 「パース」は生のコードを、より抽象表現に変えることです。
  *
- * 2. *Transformation* takes this abstract representation and manipulates to do
- *    whatever the compiler wants it to.
+ * 2. 「変換」は、抽象表現を受け取り、コンパイラの望む形に加工します。
  *
- * 3. *Code Generation* takes the transformed representation of the code and
- *    turns it into new code.
+ * 3. 「コード生成」は、変換されたコードを受け取り新しいコードを生成します。
+ *
  */
 
 /**
- * Parsing
+ * パースについて
  * -------
  *
- * Parsing typically gets broken down into two phases: Lexical Analysis and
- * Syntactic Analysis.
+ * 構文解析は通常、「字句解析」と「構文解析」の2つのフェーズに分けられます。
  *
- * 1. *Lexical Analysis* takes the raw code and splits it apart into these things
- *    called tokens by a thing called a tokenizer (or lexer).
+ * 1. 「字句解析」 は生のコードを受けとり、トークナイザー（もしくはレキサー）と呼ぼれるものによって
+ *    トークンと呼ばれる単位に分割されます。
  *
- *    Tokens are an array of tiny little objects that describe an isolated piece
- *    of the syntax. They could be numbers, labels, punctuation, operators,
- *    whatever.
+ *    トークンとは構文の中で独立して存在できるオブジェクトのことで、非常に小さな配列を形作ります。
+ *    トークンは数値、ラベル、句読点、演算子など、何でも含みます。
  *
- * 2. *Syntactic Analysis* takes the tokens and reformats them into a
- *    representation that describes each part of the syntax and their relation
- *    to one another. This is known as an intermediate representation or
- *    Abstract Syntax Tree.
+ * 2. 「構文解析」、トークンを取り出し、構文の各部分と相互の関係を記述した表現に再フォーマットします.
+ * 　　これは、中間表現、または抽象構文木(AST)と言われています。
  *
- *    An Abstract Syntax Tree, or AST for short, is a deeply nested object that
- *    represents code in a way that is both easy to work with and tells us a lot
- *    of information.
+ *    抽象構文木（AST）はコードを表現するために、扱いやすく、多くの情報を伝達する形として
+ *    深くネストされたオブジェクトとなっています。
  *
- * For the following syntax:
+ * 例えば次の構文は、
  *
  *   (add 2 (subtract 4 2))
  *
- * Tokens might look something like this:
+ * トークンとしては次のように見えるはずです:
  *
  *   [
  *     { type: 'paren',  value: '('        },
@@ -155,7 +147,7 @@
  *     { type: 'paren',  value: ')'        },
  *   ]
  *
- * And an Abstract Syntax Tree (AST) might look like this:
+ * そして抽象構文木 (AST) ではこのように見えるはずです。:
  *
  *   {
  *     type: 'Program',
