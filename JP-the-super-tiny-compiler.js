@@ -173,29 +173,28 @@
  */
 
 /**
- * Transformation
+ * 変換
  * --------------
  *
- * The next type of stage for a compiler is transformation. Again, this just
- * takes the AST from the last step and makes changes to it. It can manipulate
- * the AST in the same language or it can translate it into an entirely new
- * language.
+ * コンパイラが実行する次の手順は、変換です。
+ * 再び前段からASTを取り出し、それに変更を加えます。
+ * 同じ言語でASTを操作することもできるし、まったく新しい言語に翻訳することもできます。
  *
- * Let’s look at how we would transform an AST.
+ * どのようにASTを変形させるか見てみましょう。
  *
- * You might notice that our AST has elements within it that look very similar.
- * There are these objects with a type property. Each of these are known as an
- * AST Node. These nodes have defined properties on them that describe one
- * isolated part of the tree.
+ * あなたはASTの要素の中に非常に似ている要素が1つあることに気づいたかもしれません。
+ * これらのオブジェクトには、typeプロパティがあります。
+ * これらはそれぞれ、ASTノードと呼ばれています。
+ * これらのノードには、ツリーの孤立した1つの部分を記述するプロパティが定義されています。
  *
- * We can have a node for a "NumberLiteral":
+ * "NumberLiteral"を持つノードでは、
  *
  *   {
  *     type: 'NumberLiteral',
  *     value: '2',
  *   }
  *
- * Or maybe a node for a "CallExpression":
+ * "CallExpression"を持つノードでは、
  *
  *   {
  *     type: 'CallExpression',
@@ -203,20 +202,18 @@
  *     params: [...nested nodes go here...],
  *   }
  *
- * When transforming the AST we can manipulate nodes by
- * adding/removing/replacing properties, we can add new nodes, remove nodes, or
- * we could leave the existing AST alone and create an entirely new one based
- * on it.
+ * ASTを変換する際には、プロパティの追加・削除・置換によってノードを操作することができ、
+ * 新しいノードを追加したり、ノードを削除したり、既存のASTをそのままにして、
+ * それを基に全く新しいASTを作成することができる。
  *
- * Since we’re targeting a new language, we’re going to focus on creating an
- * entirely new AST that is specific to the target language.
+ * 私たちは今回、新しい言語をターゲットにしているので、
+ * その言語に特化した全く新しいASTを作成することに重点を置いています。
  *
- * Traversal
+ * 走査（traversal）
  * ---------
  *
- * In order to navigate through all of these nodes, we need to be able to
- * traverse through them. This traversal process goes to each node in the AST
- * depth-first.
+ * 全ノードを把握するために、 私たちはノード間を走査しなければいけない。
+ * 走査処理は、各ノードを深さ優先で探っていく。
  *
  *   {
  *     type: 'Program',
@@ -240,46 +237,45 @@
  *     }]
  *   }
  *
- * So for the above AST we would go:
+ * そのため、上記のASTでは以下のように動きます:
  *
- *   1. Program - Starting at the top level of the AST
- *   2. CallExpression (add) - Moving to the first element of the Program's body
- *   3. NumberLiteral (2) - Moving to the first element of CallExpression's params
- *   4. CallExpression (subtract) - Moving to the second element of CallExpression's params
- *   5. NumberLiteral (4) - Moving to the first element of CallExpression's params
- *   6. NumberLiteral (2) - Moving to the second element of CallExpression's params
+ *   1. Program - ASTの最上段からスタートします。
+ *   2. CallExpression (add) - Programのbodyの最初の要素へ移動します。
+ *   3. NumberLiteral (2) - CallExpressionのparamsの最初の要素に移動します。
+ *   4. CallExpression (subtract) - CallExpressionのparamsの2番目の要素に移動します。
+ *   5. NumberLiteral (4) - CallExpressionのparamsの最初の要素に移動します。
+ *   6. NumberLiteral (2) - CallExpressionのparamsの2番目の要素に移動します。
  *
  * If we were manipulating this AST directly, instead of creating a separate AST,
- * we would likely introduce all sorts of abstractions here. But just visiting
- * each node in the tree is enough for what we're trying to do.
+ * もし、このASTを直接操作するのであれば、別のASTを作るのではなく、
+ * ここに様々な抽象化を導入することになるだろう。
+ * しかし、私たちがやろうとしていることは、ツリーの各ノードを訪れるだけで十分です。
  *
- * The reason I use the word "visiting" is because there is this pattern of how
- * to represent operations on elements of an object structure.
+ * "訪れる"という単語を使った理由は、オブジェクト構造の中の要素をどのように
+ * 操作するかにパターンがあるからです。
  *
- * Visitors
+ * ビジター(Visitors)
  * --------
  *
- * The basic idea here is that we are going to create a “visitor” object that
- * has methods that will accept different node types.
+ * ここでの基本的な考え方は、異なるノードタイプを受け入れるメソッドを
+ * 持つ「ビジター」オブジェクトを作成することです。
  *
  *   var visitor = {
  *     NumberLiteral() {},
  *     CallExpression() {},
  *   };
  *
- * When we traverse our AST, we will call the methods on this visitor whenever we
- * "enter" a node of a matching type.
+ * 私たちはASTを走査するとき、 一致する型のノードに"入る"時、このビジターメソッドを呼ぶことになる。
  *
- * In order to make this useful we will also pass the node and a reference to
- * the parent node.
+ * これを便利にするために、ノードと親ノードへの参照も渡すことにする。
  *
  *   var visitor = {
  *     NumberLiteral(node, parent) {},
  *     CallExpression(node, parent) {},
  *   };
  *
- * However, there also exists the possibility of calling things on "exit". Imagine
- * our tree structure from before in list form:
+ * しかし、 "出口"で呼ばれる可能性が存在しています。
+ * 想像してください。前回からの私たちの木構造は次のようになっています。:
  *
  *   - Program
  *     - CallExpression
@@ -288,9 +284,9 @@
  *         - NumberLiteral
  *         - NumberLiteral
  *
- * As we traverse down, we're going to reach branches with dead ends. As we
- * finish each branch of the tree we "exit" it. So going down the tree we
- * "enter" each node, and going back up we "exit".
+ * 下へ走査していくと、行き止まりの枝に着き当たります。
+ * 各枝の走査が終わった時に木から出ることになります。
+ * 木を下へ降りていくことは入ることになり、上に戻ることは出ることに相当します。
  *
  *   -> Program (enter)
  *     -> CallExpression (enter)
@@ -305,7 +301,7 @@
  *     <- CallExpression (exit)
  *   <- Program (exit)
  *
- * In order to support that, the final form of our visitor will look like this:
+ * この動きをサポートするために、ビジターの最終形態は次のようになります:
  *
  *   var visitor = {
  *     NumberLiteral: {
@@ -316,12 +312,13 @@
  */
 
 /**
- * Code Generation
+ * コード生成
  * ---------------
  *
- * The final phase of a compiler is code generation. Sometimes compilers will do
- * things that overlap with transformation, but for the most part code
- * generation just means take our AST and string-ify code back out.
+ * コンパイラの最終段階はコード生成です。
+ * コンパイラは、変換と重複することをすることもありますが、
+ * ほとんどの場合、コード生成は、私たちのASTを受け取り、
+ * コードを文字列化して戻すことを意味するだけです。
  *
  * Code generators work several different ways, some compilers will reuse the
  * tokens from earlier, others will have created a separate representation of
